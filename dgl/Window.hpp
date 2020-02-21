@@ -150,6 +150,7 @@ private:
 
     virtual void _addWidget(Widget* const widget);
     virtual void _removeWidget(Widget* const widget);
+    virtual void _setWidgetZ(Widget* const widget, const uint zIndex);
     void _idle();
 
     bool handlePluginKeyboard(const bool press, const uint key);

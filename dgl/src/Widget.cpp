@@ -164,6 +164,11 @@ void Widget::setAbsolutePos(int x, int y) noexcept
     setAbsolutePos(Point<int>(x, y));
 }
 
+void Widget::setZ(uint zIndex)
+{
+    pData->parent._setWidgetZ(this, zIndex);
+}
+
 void Widget::setAbsolutePos(const Point<int>& pos) noexcept
 {
     if (pData->absolutePos == pos)

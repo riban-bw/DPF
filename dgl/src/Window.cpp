@@ -65,11 +65,7 @@ extern "C" {
 #include "../StandaloneWindow.hpp"
 #include "../../distrho/extra/String.hpp"
 
-#define FOR_EACH_WIDGET(it) \
-  for (std::list<Widget*>::iterator it = fWidgets.begin(); it != fWidgets.end(); ++it)
-
-#define FOR_EACH_WIDGET_INV(rit) \
-  for (std::list<Widget*>::reverse_iterator rit = fWidgets.rbegin(); rit != fWidgets.rend(); ++rit)
+#include <map>
 
 #if defined(DEBUG) && defined(DGL_DEBUG_EVENTS)
 # define DBG(msg)  std::fprintf(stderr, "%s", msg);
@@ -82,6 +78,21 @@ extern "C" {
 #endif
 
 START_NAMESPACE_DGL
+
+typedef std::map<uint, std::list<Widget*>> WidgetListMap;
+
+#define FOR_EACH_WIDGET(it) \
+  for (WidgetListMap::iterator wlm = fWidgets.begin(); wlm != fWidgets.end(); ++wlm) \
+      for (std::list<Widget*>::iterator it = wlm->second.begin(); it != wlm->second.end(); ++it)
+
+#define FOR_EACH_WIDGET_INV(rit) \
+  for (WidgetListMap::reverse_iterator wlm = fWidgets.rbegin(); wlm != fWidgets.rend(); ++wlm) \
+      for (std::list<Widget*>::reverse_iterator rit = wlm->second.rbegin(); rit != wlm->second.rend(); ++rit)
+
+#define FOR_EACH_WIDGET_FIND(wlm, widget) \
+  for (WidgetListMap::iterator wlm = fWidgets.begin(); wlm != fWidgets.end(); ++wlm) \
+      for (std::list<Widget*>::iterator it = wlm->second.begin(); it != wlm->second.end(); ++it) \
+          if ((*it) == widget)
 
 // -----------------------------------------------------------------------
 // Window Private
@@ -856,12 +867,30 @@ struct Window::PrivateData {
 
     void addWidget(Widget* const widget)
     {
-        fWidgets.push_back(widget);
+        fWidgets[0].push_back(widget);
     }
 
     void removeWidget(Widget* const widget)
     {
-        fWidgets.remove(widget);
+        FOR_EACH_WIDGET_FIND(wlm, widget)
+        {
+            wlm->second.remove(widget);
+            break;
+        }
+    }
+
+    void setWidgetZ(Widget* const widget, const uint zIndex)
+    {
+        FOR_EACH_WIDGET_FIND(wlm, widget)
+        {
+            // if z-index matches, do nothing
+            if (wlm->first == zIndex)
+                return;
+
+            wlm->second.remove(widget);
+            fWidgets[zIndex].push_back(widget);
+            return;
+        }
     }
 
     void idle()
@@ -1235,7 +1264,7 @@ struct Window::PrivateData {
     double fScaling;
     double fAutoScaling;
     char* fTitle;
-    std::list<Widget*> fWidgets;
+    WidgetListMap fWidgets;
 
     struct Modal {
         bool enabled;
@@ -1707,6 +1736,11 @@ void Window::_addWidget(Widget* const widget)
 void Window::_removeWidget(Widget* const widget)
 {
     pData->removeWidget(widget);
+}
+
+void Window::_setWidgetZ(Widget* const widget, const uint zIndex)
+{
+    pData->setWidgetZ(widget, zIndex);
 }
 
 void Window::_idle()

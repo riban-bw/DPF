@@ -302,6 +302,12 @@ public:
     void setAbsolutePos(const Point<int>& pos) noexcept;
 
    /**
+      Set z-index of this widget within the window.
+      Default is 0.
+    */
+    void setZ(uint zIndex);
+
+   /**
       Get this widget's window application.
       Same as calling getParentWindow().getApp().
     */
