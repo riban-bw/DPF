@@ -79,19 +79,20 @@ extern "C" {
 
 START_NAMESPACE_DGL
 
-typedef std::map<uint, std::list<Widget*>> WidgetListMap;
+typedef std::list<Widget*> WidgetList;
+typedef std::map<uint, WidgetList> WidgetListMap;
 
 #define FOR_EACH_WIDGET(it) \
   for (WidgetListMap::iterator wlm = fWidgets.begin(); wlm != fWidgets.end(); ++wlm) \
-      for (std::list<Widget*>::iterator it = wlm->second.begin(); it != wlm->second.end(); ++it)
+      for (WidgetList::iterator it = wlm->second.begin(); it != wlm->second.end(); ++it)
 
 #define FOR_EACH_WIDGET_INV(rit) \
   for (WidgetListMap::reverse_iterator wlm = fWidgets.rbegin(); wlm != fWidgets.rend(); ++wlm) \
-      for (std::list<Widget*>::reverse_iterator rit = wlm->second.rbegin(); rit != wlm->second.rend(); ++rit)
+      for (WidgetList::reverse_iterator rit = wlm->second.rbegin(); rit != wlm->second.rend(); ++rit)
 
 #define FOR_EACH_WIDGET_FIND(wlm, widget) \
   for (WidgetListMap::iterator wlm = fWidgets.begin(); wlm != fWidgets.end(); ++wlm) \
-      for (std::list<Widget*>::iterator it = wlm->second.begin(); it != wlm->second.end(); ++it) \
+      for (WidgetList::iterator it = wlm->second.begin(); it != wlm->second.end(); ++it) \
           if ((*it) == widget)
 
 // -----------------------------------------------------------------------
