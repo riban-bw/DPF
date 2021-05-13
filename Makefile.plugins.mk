@@ -50,6 +50,19 @@ BASE_FLAGS += -DHAVE_LIBLO
 endif
 
 # ---------------------------------------------------------------------------------------------------------------------
+# Set VST3 filename, see https://vst3sdk-doc.diatonic.jp/doc/vstinterfaces/vst3loc.html
+
+ifeq ($(LINUX),true)
+VST3_FILENAME = $(TARGET_PROCESSOR)-linux/$(NAME).so
+endif
+ifeq ($(MACOS),true)
+VST3_FILENAME = MacOS/$(NAME)
+endif
+ifeq ($(WINDOWS),true)
+VST3_FILENAME = $(TARGET_PROCESSOR)-win/$(NAME).vst3
+endif
+
+# ---------------------------------------------------------------------------------------------------------------------
 # Set files to build
 
 OBJS_DSP = $(FILES_DSP:%=$(BUILD_DIR)/%.o)
@@ -65,7 +78,10 @@ dssi_ui    = $(TARGET_DIR)/$(NAME)-dssi/$(NAME)_ui$(APP_EXT)
 lv2        = $(TARGET_DIR)/$(NAME).lv2/$(NAME)$(LIB_EXT)
 lv2_dsp    = $(TARGET_DIR)/$(NAME).lv2/$(NAME)_dsp$(LIB_EXT)
 lv2_ui     = $(TARGET_DIR)/$(NAME).lv2/$(NAME)_ui$(LIB_EXT)
-vst        = $(TARGET_DIR)/$(NAME)-vst$(LIB_EXT)
+vst2       = $(TARGET_DIR)/$(NAME)-vst$(LIB_EXT)
+ifneq ($(VST3_FILENAME),)
+vst3       = $(TARGET_DIR)/$(NAME).vst3/Contents/$(VST3_FILENAME)
+endif
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Handle UI stuff, disable UI support automatically
@@ -236,17 +252,27 @@ $(lv2_ui): $(OBJS_UI) $(BUILD_DIR)/DistrhoUIMain_LV2.cpp.o $(DGL_LIB)
 	$(SILENT)$(CXX) $^ $(BUILD_CXX_FLAGS) $(LINK_FLAGS) $(DGL_LIBS) $(SHARED) -o $@
 
 # ---------------------------------------------------------------------------------------------------------------------
-# VST
+# VST2
 
-vst: $(vst)
+vst2 vst: $(vst2)
 
 ifeq ($(HAVE_DGL),true)
-$(vst): $(OBJS_DSP) $(OBJS_UI) $(BUILD_DIR)/DistrhoPluginMain_VST.cpp.o $(BUILD_DIR)/DistrhoUIMain_VST.cpp.o $(DGL_LIB)
+$(vst2): $(OBJS_DSP) $(OBJS_UI) $(BUILD_DIR)/DistrhoPluginMain_VST.cpp.o $(BUILD_DIR)/DistrhoUIMain_VST.cpp.o $(DGL_LIB)
 else
-$(vst): $(OBJS_DSP) $(BUILD_DIR)/DistrhoPluginMain_VST.cpp.o
+$(vst2): $(OBJS_DSP) $(BUILD_DIR)/DistrhoPluginMain_VST.cpp.o
 endif
 	-@mkdir -p $(shell dirname $@)
-	@echo "Creating VST plugin for $(NAME)"
+	@echo "Creating VST2 plugin for $(NAME)"
+	$(SILENT)$(CXX) $^ $(BUILD_CXX_FLAGS) $(LINK_FLAGS) $(DGL_LIBS) $(SHARED) -o $@
+
+# ---------------------------------------------------------------------------------------------------------------------
+# VST3
+
+vst3: $(vst3)
+
+$(vst3): $(OBJS_DSP) $(BUILD_DIR)/DistrhoPluginMain_VST3.cpp.o
+	-@mkdir -p $(shell dirname $@)
+	@echo "Creating VST3 plugin for $(NAME)"
 	$(SILENT)$(CXX) $^ $(BUILD_CXX_FLAGS) $(LINK_FLAGS) $(DGL_LIBS) $(SHARED) -o $@
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -261,10 +287,12 @@ endif
 -include $(BUILD_DIR)/DistrhoPluginMain_DSSI.cpp.d
 -include $(BUILD_DIR)/DistrhoPluginMain_LV2.cpp.d
 -include $(BUILD_DIR)/DistrhoPluginMain_VST.cpp.d
+-include $(BUILD_DIR)/DistrhoPluginMain_VST3.cpp.d
 
 -include $(BUILD_DIR)/DistrhoUIMain_JACK.cpp.d
 -include $(BUILD_DIR)/DistrhoUIMain_DSSI.cpp.d
 -include $(BUILD_DIR)/DistrhoUIMain_LV2.cpp.d
 -include $(BUILD_DIR)/DistrhoUIMain_VST.cpp.d
+-include $(BUILD_DIR)/DistrhoUIMain_VST3.cpp.d
 
 # ---------------------------------------------------------------------------------------------------------------------

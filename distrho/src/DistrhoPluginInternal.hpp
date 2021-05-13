@@ -678,7 +678,9 @@ private:
     static const ParameterEnumerationValues sFallbackEnumValues;
 
     DISTRHO_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginExporter)
+#ifndef DISTRHO_PLUGIN_TARGET_VST3 /* there is no way around this for VST3 */
     DISTRHO_PREVENT_HEAP_ALLOCATION
+#endif
 };
 
 // -----------------------------------------------------------------------
