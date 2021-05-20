@@ -157,7 +157,7 @@ endif
 endif
 
 ifeq ($(NOOPT),true)
-# No CPU-specific optimization flags
+# Non-CPU-specific optimization flags
 BASE_OPTS  = -O2 -ffast-math -fdata-sections -ffunction-sections
 endif
 
@@ -167,9 +167,6 @@ ifeq ($(WINDOWS),true)
 BASE_OPTS  += -fno-rerun-cse-after-loop
 # See https://github.com/falkTX/Carla/issues/855
 BASE_OPTS  += -mstackrealign
-ifeq ($(BUILDING_FOR_WINDOWS),true)
-BASE_FLAGS += -DBUILDING_CARLA_FOR_WINDOWS
-endif
 else
 # Not needed for Windows
 BASE_FLAGS += -fPIC -DPIC
@@ -229,11 +226,13 @@ endif
 
 HAVE_CAIRO  = $(shell $(PKG_CONFIG) --exists cairo && echo true)
 
-ifeq ($(HAIKU_OR_MACOS_OR_WINDOWS),true)
+ifeq ($(MACOS_OR_WINDOWS),true)
 HAVE_OPENGL = true
 else
 HAVE_OPENGL = $(shell $(PKG_CONFIG) --exists gl && echo true)
+ifneq ($(HAIKU),true)
 HAVE_X11    = $(shell $(PKG_CONFIG) --exists x11 && echo true)
+endif
 endif
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -306,6 +305,19 @@ endif
 
 HAVE_CAIRO_OR_OPENGL = true
 
+endif
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Set optional libraries specific stuff
+
+ifeq ($(HAVE_JACK),true)
+JACK_FLAGS   = $(shell $(PKG_CONFIG) --cflags jack)
+JACK_LIBS    = $(shell $(PKG_CONFIG) --libs jack)
+endif
+
+ifeq ($(HAVE_LIBLO),true)
+LIBLO_FLAGS  = $(shell $(PKG_CONFIG) --cflags liblo)
+LIBLO_LIBS   = $(shell $(PKG_CONFIG) --libs liblo)
 endif
 
 # ---------------------------------------------------------------------------------------------------------------------

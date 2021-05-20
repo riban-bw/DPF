@@ -1,6 +1,6 @@
 /*
  * DISTRHO Plugin Framework (DPF)
- * Copyright (C) 2012-2018 Filipe Coelho <falktx@falktx.com>
+ * Copyright (C) 2012-2020 Filipe Coelho <falktx@falktx.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any purpose with
  * or without fee is hereby granted, provided that the above copyright notice and this
@@ -47,6 +47,7 @@
 #define effCanBeAutomated 26
 #define effGetProgramNameIndexed 29
 #define effGetPlugCategory 35
+#define effVendorSpecific 50
 #define effEditKeyDown 59
 #define effEditKeyUp 60
 #define kVstVersion 2400
@@ -161,12 +162,25 @@ public:
 class UIVst
 {
 public:
-    UIVst(const audioMasterCallback audioMaster, AEffect* const effect, ParameterCheckHelper* const uiHelper, PluginExporter* const plugin, const intptr_t winId, const float scaleFactor)
+    UIVst(const audioMasterCallback audioMaster,
+          AEffect* const effect,
+          ParameterCheckHelper* const uiHelper,
+          PluginExporter* const plugin,
+          const intptr_t winId, const float scaleFactor)
         : fAudioMaster(audioMaster),
           fEffect(effect),
           fUiHelper(uiHelper),
           fPlugin(plugin),
-          fUI(this, winId, editParameterCallback, setParameterCallback, setStateCallback, sendNoteCallback, setSizeCallback, scaleFactor, plugin->getInstancePointer()),
+          fUI(this, winId,
+              editParameterCallback,
+              setParameterCallback,
+              setStateCallback,
+              sendNoteCallback,
+              setSizeCallback,
+              nullptr, // TODO file request
+              nullptr,
+              plugin->getInstancePointer(),
+              scaleFactor),
           fShouldCaptureVstKeys(false)
     {
         // FIXME only needed for windows?
@@ -397,11 +411,12 @@ public:
 #endif
 
 #if DISTRHO_PLUGIN_HAS_UI
-        fVstUI          = nullptr;
-        fVstRect.top    = 0;
-        fVstRect.left   = 0;
-        fVstRect.bottom = 0;
-        fVstRect.right  = 0;
+        fVstUI           = nullptr;
+        fVstRect.top     = 0;
+        fVstRect.left    = 0;
+        fVstRect.bottom  = 0;
+        fVstRect.right   = 0;
+        fLastScaleFactor = 1.0f;
 
         if (const uint32_t paramCount = fPlugin.getParameterCount())
         {
@@ -578,10 +593,9 @@ public:
             {
                 d_lastUiSampleRate = fPlugin.getSampleRate();
 
-                // TODO
-                const float scaleFactor = 1.0f;
-
-                UIExporter tmpUI(nullptr, 0, nullptr, nullptr, nullptr, nullptr, nullptr, scaleFactor, fPlugin.getInstancePointer());
+                UIExporter tmpUI(nullptr, 0,
+                                 nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                                 fPlugin.getInstancePointer(), fLastScaleFactor);
                 fVstRect.right  = tmpUI.getWidth();
                 fVstRect.bottom = tmpUI.getHeight();
                 tmpUI.quit();
@@ -602,10 +616,7 @@ public:
 # endif
                 d_lastUiSampleRate = fPlugin.getSampleRate();
 
-                // TODO
-                const float scaleFactor = 1.0f;
-
-                fVstUI = new UIVst(fAudioMaster, fEffect, this, &fPlugin, (intptr_t)ptr, scaleFactor);
+                fVstUI = new UIVst(fAudioMaster, fEffect, this, &fPlugin, (intptr_t)ptr, fLastScaleFactor);
 
 # if DISTRHO_PLUGIN_WANT_FULL_STATE
                 // Update current state from plugin side
@@ -908,6 +919,13 @@ public:
             }
             break;
 
+        case effVendorSpecific:
+#if DISTRHO_PLUGIN_HAS_UI
+            if (index == CCONST('P', 'r', 'e', 'S') && value == CCONST('A', 'e', 'C', 's'))
+                fLastScaleFactor = opt;
+#endif
+            break;
+
         //case effStartProcess:
         //case effStopProcess:
         // unused
@@ -952,16 +970,16 @@ public:
 
     void vst_processReplacing(const float** const inputs, float** const outputs, const int32_t sampleFrames)
     {
-        if (sampleFrames <= 0)
-        {
-            updateParameterOutputsAndTriggers();
-            return;
-        }
-
         if (! fPlugin.isActive())
         {
             // host has not activated the plugin yet, nasty!
             vst_dispatcher(effMainsChanged, 0, 1, nullptr, 0.0f);
+        }
+
+        if (sampleFrames <= 0)
+        {
+            updateParameterOutputsAndTriggers();
+            return;
         }
 
 #if DISTRHO_PLUGIN_WANT_TIMEPOS
@@ -1054,6 +1072,7 @@ private:
 #if DISTRHO_PLUGIN_HAS_UI
     UIVst* fVstUI;
     ERect  fVstRect;
+    float  fLastScaleFactor;
 # if DISTRHO_OS_MAC
     bool fUsingNsView;
 # endif

@@ -35,7 +35,12 @@ public:
         std::memset(fStrBuf, 0, sizeof(char)*(0xff+1));
 
         fSampleRate = getSampleRate();
-        fFont       = createFontFromFile("sans", "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf");
+
+#ifdef DGL_NO_SHARED_RESOURCES
+        createFontFromFile("sans", "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf");
+#else
+        loadSharedResources();
+#endif
 
         setGeometryConstraints(405, 256, true);
     }
@@ -169,7 +174,6 @@ private:
     double fSampleRate;
 
     // UI stuff
-    FontId fFont;
     float fScale;
 
     // temp buf for text

@@ -1,6 +1,6 @@
 /*
  * DISTRHO Plugin Framework (DPF)
- * Copyright (C) 2012-2018 Filipe Coelho <falktx@falktx.com>
+ * Copyright (C) 2012-2020 Filipe Coelho <falktx@falktx.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any purpose with
  * or without fee is hereby granted, provided that the above copyright notice and this
@@ -35,7 +35,7 @@ START_NAMESPACE_DISTRHO
  */
 
 /**
-   Audio port can be used as control voltage (LV2 only).
+   Audio port can be used as control voltage (LV2 and JACK standalone only).
  */
 static const uint32_t kAudioPortIsCV = 0x1;
 
@@ -110,6 +110,9 @@ static const uint32_t kParameterIsTrigger = 0x20 | kParameterIsBoolean;
 
 /**
    Audio Port.
+
+   Can be used as CV port by specifying kAudioPortIsCV in hints,@n
+   but this is only supported in LV2 and JACK standalone formats.
  */
 struct AudioPort {
    /**
@@ -189,7 +192,7 @@ struct ParameterRanges {
     float max;
 
    /**
-      Default constructor, using 0.0 as minimum, 1.0 as maximum and 0.0 as default.
+      Default constructor, using 0.0 as default, 0.0 as minimum, 1.0 as maximum.
     */
     ParameterRanges() noexcept
         : def(0.0f),
@@ -825,6 +828,13 @@ protected:
       Must be implemented by your plugin class only if DISTRHO_PLUGIN_WANT_STATE is enabled.
     */
     virtual void initState(uint32_t index, String& stateKey, String& defaultStateValue) = 0;
+#endif
+
+#if DISTRHO_PLUGIN_WANT_STATEFILES
+   /**
+      TODO API under construction
+    */
+    virtual bool isStateFile(uint32_t index) = 0;
 #endif
 
    /* --------------------------------------------------------------------------------------------------------

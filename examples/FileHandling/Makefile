@@ -7,16 +7,17 @@
 # --------------------------------------------------------------
 # Project name, used for binaries
 
-NAME = d_states
+NAME = d_files
 
 # --------------------------------------------------------------
 # Files to build
 
 FILES_DSP = \
-	ExamplePluginStates.cpp
+	FileHandlingPlugin.cpp
 
-FILES_UI  = \
-	ExampleUIStates.cpp
+FILES_UI = \
+	FileHandlingUI.cpp \
+	NanoButton.cpp
 
 # --------------------------------------------------------------
 # Do some magic

@@ -39,7 +39,7 @@ public:
         std::memset(fParamGrid, 0, sizeof(bool)*9);
 
         // TODO explain why this is here
-        setGeometryConstraints(128, 128, true);
+        setGeometryConstraints(128, 128, true, false);
     }
 
 protected:
@@ -104,16 +104,40 @@ protected:
     {
         const uint width = getWidth();
         const uint height = getHeight();
+        const uint minwh = std::min(width, height);
+        const uint bgColor = getBackgroundColor();
 
         Rectangle<int> r;
 
-        r.setWidth(width/3 - 6);
-        r.setHeight(height/3 - 6);
+        // if host doesn't respect aspect-ratio but supports ui background, draw out-of-bounds color from it
+        if (width != height && bgColor != 0)
+        {
+            const GLubyte red   = (bgColor >> 24) & 0xff;
+            const GLubyte green = (bgColor >> 16) & 0xff;
+            const GLubyte blue  = (bgColor >>  8) & 0xff;
+            glColor3ub(red, green, blue);
+
+            if (width > height)
+            {
+                r.setPos(height, 0);
+                r.setSize(width-height, height);
+            }
+            else
+            {
+                r.setPos(0, width);
+                r.setSize(width, height-width);
+            }
+
+            r.draw();
+        }
+
+        r.setWidth(minwh/3 - 6);
+        r.setHeight(minwh/3 - 6);
 
         // draw left, center and right columns
         for (int i=0; i<3; ++i)
         {
-            r.setX(3 + i*width/3);
+            r.setX(3 + i*minwh/3);
 
             // top
             r.setY(3);
@@ -126,7 +150,7 @@ protected:
             r.draw();
 
             // middle
-            r.setY(3 + height/3);
+            r.setY(3 + minwh/3);
 
             if (fParamGrid[3+i])
                 glColor3f(0.8f, 0.5f, 0.3f);
@@ -136,7 +160,7 @@ protected:
             r.draw();
 
             // bottom
-            r.setY(3 + height*2/3);
+            r.setY(3 + minwh*2/3);
 
             if (fParamGrid[6+i])
                 glColor3f(0.8f, 0.5f, 0.3f);
@@ -159,16 +183,17 @@ protected:
 
         const uint width = getWidth();
         const uint height = getHeight();
+        const uint minwh = std::min(width, height);
 
         Rectangle<int> r;
 
-        r.setWidth(width/3 - 6);
-        r.setHeight(height/3 - 6);
+        r.setWidth(minwh/3 - 6);
+        r.setHeight(minwh/3 - 6);
 
         // handle left, center and right columns
         for (int i=0; i<3; ++i)
         {
-            r.setX(3 + i*width/3);
+            r.setX(3 + i*minwh/3);
 
             // top
             r.setY(3);
@@ -190,7 +215,7 @@ protected:
             }
 
             // middle
-            r.setY(3 + height/3);
+            r.setY(3 + minwh/3);
 
             if (r.contains(ev.pos))
             {
@@ -203,7 +228,7 @@ protected:
             }
 
             // bottom
-            r.setY(3 + height*2/3);
+            r.setY(3 + minwh*2/3);
 
             if (r.contains(ev.pos))
             {

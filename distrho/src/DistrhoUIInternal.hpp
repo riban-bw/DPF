@@ -1,6 +1,6 @@
 /*
  * DISTRHO Plugin Framework (DPF)
- * Copyright (C) 2012-2019 Filipe Coelho <falktx@falktx.com>
+ * Copyright (C) 2012-2020 Filipe Coelho <falktx@falktx.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any purpose with
  * or without fee is hereby granted, provided that the above copyright notice and this
@@ -48,11 +48,12 @@ extern Window*     d_lastUiWindow;
 // -----------------------------------------------------------------------
 // UI callbacks
 
-typedef void (*editParamFunc) (void* ptr, uint32_t rindex, bool started);
-typedef void (*setParamFunc)  (void* ptr, uint32_t rindex, float value);
-typedef void (*setStateFunc)  (void* ptr, const char* key, const char* value);
-typedef void (*sendNoteFunc)  (void* ptr, uint8_t channel, uint8_t note, uint8_t velo);
-typedef void (*setSizeFunc)   (void* ptr, uint width, uint height);
+typedef void (*editParamFunc)   (void* ptr, uint32_t rindex, bool started);
+typedef void (*setParamFunc)    (void* ptr, uint32_t rindex, float value);
+typedef void (*setStateFunc)    (void* ptr, const char* key, const char* value);
+typedef void (*sendNoteFunc)    (void* ptr, uint8_t channel, uint8_t note, uint8_t velo);
+typedef void (*setSizeFunc)     (void* ptr, uint width, uint height);
+typedef bool (*fileRequestFunc) (void* ptr, const char* key);
 
 // -----------------------------------------------------------------------
 // UI private data
@@ -70,14 +71,17 @@ struct UI::PrivateData {
     bool resizeInProgress;
     uint minWidth;
     uint minHeight;
+    uint bgColor;
+    uint fgColor;
 
     // Callbacks
-    void*         callbacksPtr;
-    editParamFunc editParamCallbackFunc;
-    setParamFunc  setParamCallbackFunc;
-    setStateFunc  setStateCallbackFunc;
-    sendNoteFunc  sendNoteCallbackFunc;
-    setSizeFunc   setSizeCallbackFunc;
+    void*           callbacksPtr;
+    editParamFunc   editParamCallbackFunc;
+    setParamFunc    setParamCallbackFunc;
+    setStateFunc    setStateCallbackFunc;
+    sendNoteFunc    sendNoteCallbackFunc;
+    setSizeFunc     setSizeCallbackFunc;
+    fileRequestFunc fileRequestCallbackFunc;
 
     PrivateData() noexcept
         : sampleRate(d_lastUiSampleRate),
@@ -89,12 +93,15 @@ struct UI::PrivateData {
           resizeInProgress(false),
           minWidth(0),
           minHeight(0),
+          bgColor(0),
+          fgColor(0),
           callbacksPtr(nullptr),
           editParamCallbackFunc(nullptr),
           setParamCallbackFunc(nullptr),
           setStateCallbackFunc(nullptr),
           sendNoteCallbackFunc(nullptr),
-          setSizeCallbackFunc(nullptr)
+          setSizeCallbackFunc(nullptr),
+          fileRequestCallbackFunc(nullptr)
     {
         DISTRHO_SAFE_ASSERT(d_isNotZero(sampleRate));
 
@@ -143,6 +150,16 @@ struct UI::PrivateData {
     {
         if (setSizeCallbackFunc != nullptr)
             setSizeCallbackFunc(callbacksPtr, width, height);
+    }
+
+    bool fileRequestCallback(const char* key)
+    {
+        if (fileRequestCallbackFunc != nullptr)
+            return fileRequestCallbackFunc(callbacksPtr, key);
+
+        // TODO use old style DPF dialog here
+
+        return false;
     }
 };
 
@@ -258,9 +275,12 @@ public:
                const setStateFunc setStateCall,
                const sendNoteFunc sendNoteCall,
                const setSizeFunc setSizeCall,
-               const float scaleFactor = 1.0f,
+               const fileRequestFunc fileRequestCall,
+               const char* const bundlePath = nullptr,
                void* const dspPtr = nullptr,
-               const char* const bundlePath = nullptr)
+               const float scaleFactor = 1.0f,
+               const uint32_t bgColor = 0,
+               const uint32_t fgColor = 0xffffffff)
 #if DISTRHO_PLUGIN_HAS_EXTERNAL_UI
         : fUI(createUiWrapper(dspPtr, winId, scaleFactor, bundlePath)),
 #else
@@ -274,12 +294,16 @@ public:
         DISTRHO_SAFE_ASSERT_RETURN(fUI != nullptr,);
         DISTRHO_SAFE_ASSERT_RETURN(fData != nullptr,);
 
-        fData->callbacksPtr          = callbacksPtr;
-        fData->editParamCallbackFunc = editParamCall;
-        fData->setParamCallbackFunc  = setParamCall;
-        fData->setStateCallbackFunc  = setStateCall;
-        fData->sendNoteCallbackFunc  = sendNoteCall;
-        fData->setSizeCallbackFunc   = setSizeCall;
+        fData->bgColor = bgColor;
+        fData->fgColor = fgColor;
+
+        fData->callbacksPtr            = callbacksPtr;
+        fData->editParamCallbackFunc   = editParamCall;
+        fData->setParamCallbackFunc    = setParamCall;
+        fData->setStateCallbackFunc    = setStateCall;
+        fData->sendNoteCallbackFunc    = sendNoteCall;
+        fData->setSizeCallbackFunc     = setSizeCall;
+        fData->fileRequestCallbackFunc = fileRequestCall;
 
 #if !DISTRHO_PLUGIN_HAS_EXTERNAL_UI
         // unused
@@ -340,6 +364,20 @@ public:
         return glWindow.getWindowId();
     }
 #endif
+
+    uint getBackgroundColor() const noexcept
+    {
+        DISTRHO_SAFE_ASSERT_RETURN(fData != nullptr, 0);
+
+        return fData->bgColor;
+    }
+
+    uint getForegroundColor() const noexcept
+    {
+        DISTRHO_SAFE_ASSERT_RETURN(fData != nullptr, 0xffffffff);
+
+        return fData->fgColor;
+    }
 
     // -------------------------------------------------------------------
 
